@@ -2,17 +2,20 @@ package main
 
 import "fmt"
 
-// Represents the instruction types in MIPS
+// Represents the instruction types in RISC-V
 type InstructionType int
 
-// MIPS instruction types
+// RISC-V instruction types
 const (
 	R_TYPE InstructionType = iota // Register (R-format) instructions
 	I_TYPE                        // Immediate (I-format) instructions
+	S_TYPE                        // Store (S-format) instructions
+	B_TYPE                        // Branch (B-format) instructions
+	U_TYPE                        // Upper immediate (U-format) instructions
 	J_TYPE                        // Jump (J-format) instructions
 )
 
-// Represents an instruction in MIPS
+// Represents an instruction in RISC-V
 type Instruction struct {
 	format InstructionType // The format of the instruction
 	opcode uint8
@@ -21,32 +24,56 @@ type Instruction struct {
 
 // Instruction set
 var instructionSet = map[string]Instruction{
-	"add":  {R_TYPE, 0b000000, 0b100000},
-	"addi": {I_TYPE, 0b001000, 0},
-	"and":  {R_TYPE, 0b000000, 0b100100},
-	"andi": {I_TYPE, 0b001100, 0},
-	"nor": {R_TYPE, 0b000000, 0b100111},
-	"or":  {R_TYPE, 0b000000, 0b100101},
-	"ori": {I_TYPE, 0b001101, 0},
-	"sub": {R_TYPE, 0b000000, 0b100010},
-	"xor": {R_TYPE, 0b000000, 0b100110},
-	"xori": {I_TYPE, 0b001110, 0},
+	"add":     {R_TYPE, 0b000000, 0b100000},
+	"addi":    {I_TYPE, 0b001000, 0},
+	"and":     {R_TYPE, 0b000000, 0b100100},
+	"andi":    {I_TYPE, 0b001100, 0},
+	"nor":     {R_TYPE, 0b000000, 0b100111},
+	"or":      {R_TYPE, 0b000000, 0b100101},
+	"ori":     {I_TYPE, 0b001101, 0},
+	"sub":     {R_TYPE, 0b000000, 0b100010},
+	"xor":     {R_TYPE, 0b000000, 0b100110},
+	"xori":    {I_TYPE, 0b001110, 0},
 	"syscall": {R_TYPE, 0b000000, 0b001100},
 }
 
-// Register map
+// ABI registers map
 var registerMap = map[string]int{
-	"$zero": 0, "$at": 1, "$v0": 2, "$v1": 3,
-	"$a0": 4, "$a1": 5, "$a2": 6, "$a3": 7,
-	"$t0": 8, "$t1": 9, "$t2": 10, "$t3": 11,
-	"$t4": 12, "$t5": 13, "$t6": 14, "$t7": 15,
-	"$s0": 16, "$s1": 17, "$s2": 18, "$s3": 19,
-	"$s4": 20, "$s5": 21, "$s6": 22, "$s7": 23,
-	"$t8": 24, "$t9": 25, "$k0": 26, "$k1": 27,
-	"$gp": 28, "$sp": 29, "$fp": 30, "$ra": 31,
+	"zero": 0, // Hardwired zero
+	"ra":  1, // Return address
+	"sp":  2, // Stack pointer
+	"gp":  3, // Global pointer
+	"tp":  4, // Thread pointer
+	"t0":  5, // Temporary registers
+	"t1":  6,
+	"t2":  7,
+	"s0":  8, // Saved register/Frame pointer
+	"s1":  9, // Saved register
+	"a0":  10, // Function arguments/return values
+	"a1":  11,
+	"a2":  12,
+	"a3":  13,
+	"a4":  14,
+	"a5":  15,
+	"a6":  16,
+	"a7":  17,
+	"s2":  18, // Saved registers
+	"s3":  19,
+	"s4":  20,
+	"s5":  21,
+	"s6":  22,
+	"s7":  23,
+	"s8":  24,
+	"s9":  25,
+	"s10": 26,
+	"s11": 27,
+	"t3":  28, // Temporary registers
+	"t4":  29,
+	"t5":  30,
+	"t6":  31,
 }
 
-// Represents a MIPS assembly instruction
+// Represents a RISC-V assembly instruction
 type AssemblyInstruction struct {
 	name  string            // The instruction name
 	rType *RTypeInstruction // The R-type instruction

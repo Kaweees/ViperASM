@@ -30,7 +30,7 @@ func (args) Version() string {
 
 // Returns a description of the program
 func (args) Description() string {
-	return "A simple assembler for the MIPS architecture"
+	return "A simple assembler for the RISC-V (RV32I) architecture"
 }
 
 // Returns the parsed CLI arguments
