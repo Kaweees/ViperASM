@@ -25,15 +25,15 @@ type Instruction struct {
 
 // Instruction set
 var instructionSet = map[string]Instruction{
-	"add": {R_TYPE, 0b0110011, 0x0, 0x00}, // rd = rs1 + rs2
-	"sub": {R_TYPE, 0b0110011, 0x0, 0x20}, // rd = rs1 - rs2
-	"xor": {R_TYPE, 0b0110011, 0x4, 0x00}, // rd = rs1 ^ rs2
-	"or":  {R_TYPE, 0b0110011, 0x6, 0x00}, // rd = rs1 | rs2
-	"and": {R_TYPE, 0b0110011, 0x7, 0x00}, // rd = rs1 & rs2
-	"sll": {R_TYPE, 0b0110011, 0x1, 0x00}, // rd = rs1 << rs2
-	"srl": {R_TYPE, 0b0110011, 0x5, 0x00}, // rd = rs1 >> rs2 (logical)
-	"sra": {R_TYPE, 0b0110011, 0x5, 0x20}, // rd = rs1 >> rs2 (arithmetic)
-	"slt": {R_TYPE, 0b0110011, 0x2, 0x00}, // rd = (rs1 < rs2) ? 1 : 0
+	"add":  {R_TYPE, 0b0110011, 0x0, 0x00}, // rd = rs1 + rs2
+	"sub":  {R_TYPE, 0b0110011, 0x0, 0x20}, // rd = rs1 - rs2
+	"xor":  {R_TYPE, 0b0110011, 0x4, 0x00}, // rd = rs1 ^ rs2
+	"or":   {R_TYPE, 0b0110011, 0x6, 0x00}, // rd = rs1 | rs2
+	"and":  {R_TYPE, 0b0110011, 0x7, 0x00}, // rd = rs1 & rs2
+	"sll":  {R_TYPE, 0b0110011, 0x1, 0x00}, // rd = rs1 << rs2
+	"srl":  {R_TYPE, 0b0110011, 0x5, 0x00}, // rd = rs1 >> rs2 (logical)
+	"sra":  {R_TYPE, 0b0110011, 0x5, 0x20}, // rd = rs1 >> rs2 (arithmetic)
+	"slt":  {R_TYPE, 0b0110011, 0x2, 0x00}, // rd = (rs1 < rs2) ? 1 : 0
 	"sltu": {R_TYPE, 0b0110011, 0x3, 0x00}, // rd = (rs1 < rs2) ? 1 : 0
 }
 

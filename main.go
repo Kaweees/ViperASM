@@ -6,25 +6,24 @@ import (
 )
 
 func main() {
-	var err error
-	var cli argsParsed
-
 	// Parse the arguments
-	cli, _ = GetCliArgs()
+	cli, _ := GetCliArgs()
 
 	// Initialize the logger
 	initalizeLogger()
-
-	var dfa *DFA
 
 	file, err := os.Open(cli.args.FileName)
 	if err != nil {
 		Log.Fatalf("Error opening file: %v", err)
 	}
-	defer file.Close()
+	defer file.Close() // Close the file after the function returns
 
+	viperASM(file) // assemble the file
+}
+
+func viperASM(file *os.File) {
 	// Initialize the dfa
-	dfa, err = NewDFA()
+	dfa, err := NewDFA()
 	if err != nil {
 		Log.Fatalf("Error initializing the DFA: %v", err)
 		return
