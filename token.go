@@ -27,7 +27,7 @@ const (
 	EOL       // End of line
 )
 
-// Represents a token in the scanner.
+// Represents a lexical token with position information
 type Token struct {
 	Type    TokenType
 	Literal string
@@ -38,7 +38,8 @@ func (t TokenType) String() string {
 	return [...]string{"Invalid", "Instruction", "Register", "Immediate", "Label", "LabelDef", "Comma", "LParen", "RParen", "Directive", "Macro", "Comment", "EOL"}[t]
 }
 
-// String method to convert the current token to a string.
+// String provides a readable representation of the token
 func (t Token) String() string {
-	return fmt.Sprintf("Token{Type: %s, Literal: %s}", t.Type, t.Literal)
+	return fmt.Sprintf("Token{Type: %s, Literal: %q}",
+		t.Type, t.Literal)
 }

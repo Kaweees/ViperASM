@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
-	// "unicode"
 )
 
 // Regex patterns for the token types
@@ -29,7 +30,7 @@ var tokenRegex = map[TokenType]*regexp.Regexp{
 	COMMENT: regexp.MustCompile(`^#.*`),
 }
 
-// Represents a Deterministic Finite Automaton(DFA) based lexical scanner.
+// Represents a lexical scanner.
 type Scanner struct {
 	File     *os.File
 	Patterns map[TokenType]*regexp.Regexp
@@ -93,11 +94,31 @@ func (sc *Scanner) ScanLine(line string) []Token {
 	return tokens
 }
 
-// Scan the file for tokens.
-func (sc *Scanner) ScanFile() ([][]Token, error) {
-	// Example assembly line
-	line := "add x1, x2, x3  # Add registers"
-	scannedTokens := sc.ScanLine(line)
-	sc.StoreLine(scannedTokens)
+// ScanFile reads the input file line by line and returns all tokens
+func (sc *Scanner) ScanFile(file *os.File) ([][]Token, error) {
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Skip empty lines
+		if len(strings.TrimSpace(line)) == 0 {
+			continue
+		}
+
+		// Scan the line and store tokens
+		tokens := sc.ScanLine(line)
+
+		// Only store non-empty token lists
+		if len(tokens) > 0 {
+			// Add line number to each token
+			sc.StoreLine(tokens)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading file: %v", err)
+	}
+
 	return sc.Tokens, nil
 }
