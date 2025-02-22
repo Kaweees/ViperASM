@@ -11,11 +11,11 @@ func parseTokens(dfa *DFA) error {
 		// fmt.Println("Line: ", lineCount)
 		fmt.Println("Tokens: ", tokenList)
 		for _, token := range tokenList {
-			if token.tokenType == "DotIdentifier" {
-				if _, ok := symbolTable[token.tokenValue]; ok {
-					return fmt.Errorf("duplicate label definition: %s", token.tokenValue)
+			if token.Type == "DotIdentifier" {
+				if _, ok := symbolTable[token.Value]; ok {
+					return fmt.Errorf("duplicate label definition: %s", token.Value)
 				} else {
-					symbolTable[token.tokenValue] = int32(lineCount)
+					symbolTable[token.Value] = int32(lineCount)
 				}
 			}
 		}

@@ -16,7 +16,7 @@ graph LR
    subgraph "ViperASM"
       subgraph "Analysis"
          B -->|Tokens| C[Parser]
-         C -->|AST| D[Semantic<br/>Analysis]
+         C -->|AST| D[Analyzer]
          D -->|Symbol Table| E[Code<br/>Generation]
       end
    end

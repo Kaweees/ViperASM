@@ -34,8 +34,8 @@ func (s State) String() string {
 
 // Represents a token in the scanner.
 type Token struct {
-	tokenType  string
-	tokenValue string
+	Type  string
+	Value string
 }
 
 // Represents the scanning Deterministic Finite Automaton(DFA) for the scanner.
@@ -59,8 +59,8 @@ func NewDFA() (*DFA, error) {
 }
 
 // Add a token to the list of tokens.
-func (dfa *DFA) AddToken(tokenType string, tokenValue string) {
-	dfa.tokens = append(dfa.tokens, Token{tokenType, tokenValue})
+func (dfa *DFA) AddToken(Type string, Value string) {
+	dfa.tokens = append(dfa.tokens, Token{Type, Value})
 }
 
 // Store the current state of the DFA.
