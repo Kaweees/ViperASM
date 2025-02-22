@@ -23,12 +23,11 @@ const (
 type Token struct {
 	Type    TokenType
 	Literal string
-	LineNum int
 }
 
 // String method to convert the current token type to a string.
 func (t TokenType) String() string {
-	return [...]string{"Instruction", "Register", "Immediate", "Label", "Comment", "Comma", "LParen", "RParen", "EOL"}[t]
+	return [...]string{"Invalid", "Instruction", "Register", "Immediate", "Label", "Comment", "Comma", "LParen", "RParen", "EOL"}[t]
 }
 
 // String method to convert the current token to a string.
