@@ -24,10 +24,11 @@ const (
 	DIRECTIVE // .text, .data, etc.
 	MACRO     // .macro
 	COMMENT   // # comments
+	STRING    // String literals
 	EOL       // End of line
 )
 
-// Represents a token in the scanner.
+// Represents a lexical token with position information
 type Token struct {
 	Type    TokenType
 	Literal string
@@ -35,10 +36,11 @@ type Token struct {
 
 // String method to convert the current token type to a string.
 func (t TokenType) String() string {
-	return [...]string{"Invalid", "Instruction", "Register", "Immediate", "Label", "LabelDef", "Comma", "LParen", "RParen", "Directive", "Macro", "Comment", "EOL"}[t]
+	return [...]string{"Invalid", "Instruction", "Register", "Immediate", "Label", "LabelDef", "Comma", "LParen", "RParen", "Directive", "Macro", "Comment", "String", "EOL"}[t]
 }
 
-// String method to convert the current token to a string.
+// String provides a readable representation of the token
 func (t Token) String() string {
-	return fmt.Sprintf("Token{Type: %s, Literal: %s}", t.Type, t.Literal)
+	return fmt.Sprintf("Token{Type: %s, Literal: %q}",
+		t.Type, t.Literal)
 }

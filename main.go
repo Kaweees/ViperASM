@@ -32,38 +32,17 @@ func viperASM(file *os.File) {
 	}
 
 	// Scan the file for tokens
-	tokenList, err := scanner.ScanFile()
+	tokens, err := scanner.ScanFile(file)
 	if err != nil {
 		Log.Fatalf("Error scanning file: %v", err)
 		return
 	}
 
-	// Print the tokens
-	Log.Info(fmt.Sprintf("Tokens of %s", file.Name()))
-	for _, tokens := range tokenList {
-		for _, token := range tokens {
-			fmt.Printf("Type: %v, Literal: %q\n", token.Type, token.Literal)
+	// Process each line of tokens
+	for lineNum, lineTokens := range tokens {
+		fmt.Printf("Line %d:\n", lineNum+1)
+		for _, token := range lineTokens {
+			fmt.Printf("  %s\n", token)
 		}
 	}
-
-	// // Parsing the tokens
-	// Log.Info(fmt.Sprintf("Parsing tokens of %s initalized", file.Name()))
-	// err = parseTokens(dfa)
-	// if err != nil {
-	// 	Log.Fatalf("Error parsing tokens: %v", err)
-	// 	return
-	// }
-
-	// list := []int{10, 20, 30, 40, 50}
-	// for i := 0; i < len(list); i++ {
-	// 	fmt.Println(list[i])
-	// }
-
-	// if err := scanner.Err(); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// Synthesize the tokens
-	// err = synthesizeTokens(dfa)
-	// fmt.Printf("%d lines, %d bytes\n", lineCount, byteCount)
 }

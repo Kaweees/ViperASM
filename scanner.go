@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
-	// "unicode"
 )
 
 // Regex patterns for the token types
@@ -20,16 +21,15 @@ var tokenRegex = map[TokenType]*regexp.Regexp{
 	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*:`),
 	// Directives
 	DIRECTIVE: regexp.MustCompile(`^\.(text|data|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
-	// Macros
-	MACRO: regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*`),
 	// Other tokens
 	COMMA:   regexp.MustCompile(`^,`),
 	LPAREN:  regexp.MustCompile(`^\(`),
 	RPAREN:  regexp.MustCompile(`^\)`),
 	COMMENT: regexp.MustCompile(`^#.*`),
+	STRING:  regexp.MustCompile(`^"([^"\\]|\\.)*"`), // Matches quoted strings with escape support
 }
 
-// Represents a Deterministic Finite Automaton(DFA) based lexical scanner.
+// Represents a lexical scanner.
 type Scanner struct {
 	File     *os.File
 	Patterns map[TokenType]*regexp.Regexp
@@ -64,6 +64,25 @@ func (sc *Scanner) ScanLine(line string) []Token {
 			break
 		}
 
+		// Special handling for string literals
+		if line[0] == '"' {
+			if match := sc.Patterns[STRING].FindString(line); match != "" {
+				// Remove the quotes and handle escapes
+				literal := match[1 : len(match)-1] // Remove surrounding quotes
+				literal = strings.ReplaceAll(literal, `\"`, `"`)
+				literal = strings.ReplaceAll(literal, `\\`, `\`)
+				literal = strings.ReplaceAll(literal, `\n`, "\n")
+				literal = strings.ReplaceAll(literal, `\t`, "\t")
+
+				tokens = append(tokens, Token{
+					Type:    STRING,
+					Literal: literal,
+				})
+				line = line[len(match):]
+				continue
+			}
+		}
+
 		// Try to match each pattern
 		matched := false
 		for tokType, pattern := range sc.Patterns {
@@ -93,11 +112,31 @@ func (sc *Scanner) ScanLine(line string) []Token {
 	return tokens
 }
 
-// Scan the file for tokens.
-func (sc *Scanner) ScanFile() ([][]Token, error) {
-	// Example assembly line
-	line := "add x1, x2, x3  # Add registers"
-	scannedTokens := sc.ScanLine(line)
-	sc.StoreLine(scannedTokens)
+// ScanFile reads the input file line by line and returns all tokens
+func (sc *Scanner) ScanFile(file *os.File) ([][]Token, error) {
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Skip empty lines
+		if len(strings.TrimSpace(line)) == 0 {
+			continue
+		}
+
+		// Scan the line and store tokens
+		tokens := sc.ScanLine(line)
+
+		// Only store non-empty token lists
+		if len(tokens) > 0 {
+			// Add line number to each token
+			sc.StoreLine(tokens)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading file: %v", err)
+	}
+
 	return sc.Tokens, nil
 }
