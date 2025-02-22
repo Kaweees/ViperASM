@@ -1,4 +1,4 @@
-module github.com/kaweees/go-mips-assembler
+module github.com/kaweees/ViperASM
 
 go 1.22.5
 

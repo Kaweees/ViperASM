@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
+	"unicode"
 )
 
 // Represents a Deterministic Finite Automaton(DFA) based lexical scanner.
@@ -12,188 +14,160 @@ type Scanner struct {
 	File   *os.File
 	Token  Token
 	Tokens []Token
-	reader *bufio.Reader
-	// pos     int
-	// readPos int
-	// ch      byte
-	// line    int
-	// column  int
+	Reader *bufio.Reader
+	State  TokenType
 }
 
 // Constructor to initialize memory for the Scanner.
 func NewScanner(file *os.File) (*Scanner, error) {
-	scanner := &Scanner{
-		File:   file,
-		Token:  Token{},
-		Tokens: []Token{},
-		reader: nil,
-		// pos:     0,
-		// readPos: 0,
-		// ch:     0,
-		// line:   1,
-		// column: 1,
-	}
+	scanner := &Scanner{}
+	scanner.File = file
+	scanner.Token = Token{}
+	scanner.Tokens = []Token{}
+	scanner.Reader = nil
+	scanner.State = Initial
 	return scanner, nil
+}
+
+// Add a token to the list of tokens.
+func (scanner *Scanner) AddToken() {
+	scanner.Tokens = append(scanner.Tokens, scanner.Token)
+}
+
+func (scanner *Scanner) ReadChar() (rune, error) {
+	b, err := scanner.Reader.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+	return rune(b), nil
 }
 
 // Scan the file for tokens.
 func (scanner *Scanner) ScanFile() ([]Token, error) {
-	scanner.reader = bufio.NewReader(scanner.File)
+	scanner.Reader = bufio.NewReader(scanner.File)
+	// Scan the file character by character to generate tokens
 	for {
-		b, err := scanner.reader.ReadByte()
+		b, err := scanner.Reader.ReadByte()
 		if err != nil {
 			if err == io.EOF {
-				break
+				return scanner.Tokens, nil
 			}
 			return nil, err
 		}
-		if b == 'h' {
+		scanner.Transition(r)
+		ch := rune(b)
+		if ch == 'h' {
 			fmt.Print("h")
 		}
 	}
-	return scanner.Tokens, nil
 }
 
-// func scanFile(file *os.File, dfa *DFA) error {
-// 	scanner := bufio.NewScanner(file)
-//
-// 	for scanner.Scan() {
-// 		for _, r := range scanner.Text() {
-// 			dfa.Transition(r)
-// 			// fmt.Print(i, r)
-// 			// fmt.Printf("Index: %d, Rune: %c\n", i, r)
-// 		}
-// 		dfa.Store()
-// 		dfa.StoreLine()
-// 	}
-// 	return nil
-// }
-
-
-// // Represents the scanning Deterministic Finite Automaton(DFA) for the scanner.
-// type DFA struct {
-// 	currentState  State
-// 	currentToken  string
-// 	currentString rune
-// 	tokens        []Token
-// 	totalTokens   [][]Token
-// }
-
-// // Constructor to initialize memory for the DFA.
-// func NewDFA() (*DFA, error) {
-// 	dfa := &DFA{}
-// 	dfa.currentState = Initial
-// 	dfa.currentToken = ""
-// 	dfa.currentString = 0
-// 	dfa.tokens = []Token{}
-// 	dfa.totalTokens = [][]Token{}
-// 	return dfa, nil
-// }
-
-// // Add a token to the list of tokens.
-// func (dfa *DFA) AddToken(Type string, Value string) {
-// 	dfa.tokens = append(dfa.tokens, Token{Type, Value})
-// }
-
-// Transition the DFA to a new state based on the input.
-func (dfa *DFA) Transition(input rune) {
-	// fmt.Printf("State: %s, Rune: '%c'\n", dfa.currentState.String(), input)
-	switch dfa.currentState {
+// Transition the scanner to a new state based on the input.
+func (scanner *Scanner) Transition(input byte) {
+	// fmt.Printf("State: %s, Rune: '%c'\n", dfa.State.String(), input)
+	switch scanner.State {
 	case Initial:
-		if input == '.' {
-			dfa.currentState = DotIdentifier
+		if input == 'x' {
+			scanner.State = DotIdentifier
 		} else if input == '$' {
-			dfa.currentToken = string(input)
-			dfa.currentState = Register
+			scanner.Token = string(input)
+			scanner.State = Register
 		} else if input == '0' {
-			dfa.currentState = Zero
+			scanner.State = Zero
 		} else if unicode.IsDigit(input) || input == '-' {
-			dfa.currentToken = string(input)
-			dfa.currentState = Decimal
+			scanner.Token = string(input)
+			scanner.State = Decimal
 		} else if input == ',' {
-			dfa.AddToken(dfa.currentState.String(), ",")
-			dfa.Reset()
+			scanner.AddToken(scanner.State.String(), ",")
+			scanner.Reset()
 		} else if input == '(' {
-			dfa.AddToken(dfa.currentState.String(), "(")
-			dfa.Reset()
+			scanner.AddToken(scanner.State.String(), "(")
+			scanner.Reset()
 		} else if input == ')' {
-			dfa.AddToken(dfa.currentState.String(), ")")
-			dfa.Reset()
+			scanner.AddToken(scanner.State.String(), ")")
+			scanner.Reset()
 		} else if input == '#' || input == ';' {
-			dfa.Store()
-			dfa.currentState = Comment
+			scanner.Store()
+			scanner.State = Comment
 		} else if input == '"' || input == '\'' {
-			dfa.currentString = input
-			dfa.currentToken = string(input)
-			dfa.currentState = String
+			scanner.currentString = input
+			scanner.Token = string(input)
+			scanner.State = String
 		} else if !unicode.IsSpace(input) {
-			dfa.currentToken = string(input)
-			dfa.currentState = Identifier
+			scanner.Token = string(input)
+			scanner.State = Identifier
 		}
 	case Identifier:
 		if input == ':' {
-			dfa.currentState = LabelDef
-			dfa.Store()
+			scanner.State = LabelDef
+			scanner.Store()
 		} else if !unicode.IsSpace(input) {
-			dfa.currentToken += string(input)
+			scanner.Token += string(input)
 		} else {
-			dfa.Store()
+			scanner.Store()
 		}
 	case DotIdentifier:
 		if unicode.IsLetter(input) {
-			dfa.currentToken += string(input)
+			scanner.Token += string(input)
 		} else {
-			dfa.Store()
+			scanner.Store()
 		}
 	case Register:
 		if input == ',' {
-			dfa.Store()
-			dfa.AddToken(dfa.currentState.String(), ",")
+			scanner.Store()
+			scanner.AddToken(scanner.State.String(), ",")
 		} else if unicode.IsDigit(input) || unicode.IsLetter(input) {
-			dfa.currentToken += string(input)
+			scanner.Token += string(input)
 		} else {
-			dfa.Store()
+			scanner.Store()
 		}
 	case Zero:
 		if input == 'x' {
-			dfa.currentState = Hexadecimal
+			scanner.State = Hexadecimal
 		} else if unicode.IsDigit(input) {
-			dfa.currentToken = string(input)
-			dfa.currentState = Decimal
+			scanner.Token = string(input)
+			scanner.State = Decimal
 		} else {
-			dfa.Store()
+			scanner.Store()
 		}
 	case Decimal:
 		if unicode.IsDigit(input) {
-			dfa.currentToken += string(input)
+			scanner.Token += string(input)
 		} else {
-			dfa.Store()
+			scanner.Store()
 		}
 	case Hexadecimal:
 		if strings.ContainsAny(string(input), "0123456789abcdefABCDEF") {
-			dfa.currentToken += string(input)
+			scanner.Token += string(input)
 		} else {
-			dfa.Store()
+			scanner.Store()
 		}
 	case String:
-		dfa.currentToken += string(input)
-		if input == dfa.currentString {
-			dfa.Store()
+		scanner.Token += string(input)
+		if input == scanner.currentString {
+			scanner.Store()
 		}
 	}
 }
 
-func scanFile(file *os.File, dfa *DFA) error {
-	scanner := bufio.NewScanner(file)
-	// Scan the file to generate tokens
-	for scanner.Scan() {
-		for _, r := range scanner.Text() {
-			dfa.Transition(r)
-			// fmt.Print(i, r)
-			// fmt.Printf("Index: %d, Rune: %c\n", i, r)
-		}
-		dfa.Store()
-		dfa.StoreLine()
-	}
-	return nil
-}
+// // Store the current state of the DFA.
+// func (dfa *DFA) Store() {
+// 	if dfa.State != Initial && dfa.State != Comment {
+// 		dfa.AddToken(dfa.State.String(), dfa.Token)
+// 	}
+// 	dfa.Reset()
+// }
+
+// func (dfa *DFA) StoreLine() {
+// 	if len(dfa.tokens) > 0 {
+// 		dfa.totalTokens = append(dfa.totalTokens, dfa.tokens)
+// 		dfa.tokens = []Token{}
+// 	}
+// }
+
+// // Reset the DFA to its initial state.
+// func (dfa *DFA) Reset() {
+// 	dfa.State = Initial
+// 	dfa.Token = ""
+// 	dfa.currentString = 0
+// }

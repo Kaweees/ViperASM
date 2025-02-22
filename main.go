@@ -43,6 +43,14 @@ func viperASM(file *os.File) {
 		fmt.Println(token)
 	}
 
+	// // Parsing the tokens
+	// Log.Info(fmt.Sprintf("Parsing tokens of %s initalized", file.Name()))
+	// err = parseTokens(dfa)
+	// if err != nil {
+	// 	Log.Fatalf("Error parsing tokens: %v", err)
+	// 	return
+	// }
+
 	// list := []int{10, 20, 30, 40, 50}
 	// for i := 0; i < len(list); i++ {
 	// 	fmt.Println(list[i])
