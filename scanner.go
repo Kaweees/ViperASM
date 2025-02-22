@@ -2,88 +2,98 @@ package main
 
 import (
 	"bufio"
+	"fmt"
+	"io"
 	"os"
-	"strings"
-	"unicode"
 )
 
-// Represents the possible states of the DFA.
-type State int
-
-// Represents the possible states of the DFA.
-const (
-	Initial State = iota
-	Identifier
-	DotIdentifier
-	Register
-	Zero
-	Decimal
-	Hexadecimal
-	Comma
-	LParen
-	RParen
-	LabelDef
-	Comment
-	String
-)
-
-// String method to convert the current state to a string.
-func (s State) String() string {
-	return [...]string{"Initial", "Identifier", "DotIdentifier", "Register", "Zero", "Decimal", "Hexadecimal", "Comma", "LParen", "RParen", "LabelDef", "Comment", "String"}[s]
+// Represents a Deterministic Finite Automaton(DFA) based lexical scanner.
+type Scanner struct {
+	File   *os.File
+	Token  Token
+	Tokens []Token
+	reader *bufio.Reader
+	// pos     int
+	// readPos int
+	// ch      byte
+	// line    int
+	// column  int
 }
 
-// Represents a token in the scanner.
-type Token struct {
-	Type  string
-	Value string
-}
-
-// Represents the scanning Deterministic Finite Automaton(DFA) for the scanner.
-type DFA struct {
-	currentState  State
-	currentToken  string
-	currentString rune
-	tokens        []Token
-	totalTokens   [][]Token
-}
-
-// Constructor to initialize memory for the DFA.
-func NewDFA() (*DFA, error) {
-	dfa := &DFA{}
-	dfa.currentState = Initial
-	dfa.currentToken = ""
-	dfa.currentString = 0
-	dfa.tokens = []Token{}
-	dfa.totalTokens = [][]Token{}
-	return dfa, nil
-}
-
-// Add a token to the list of tokens.
-func (dfa *DFA) AddToken(Type string, Value string) {
-	dfa.tokens = append(dfa.tokens, Token{Type, Value})
-}
-
-// Store the current state of the DFA.
-func (dfa *DFA) Store() {
-	if dfa.currentState != Initial && dfa.currentState != Comment {
-		dfa.AddToken(dfa.currentState.String(), dfa.currentToken)
+// Constructor to initialize memory for the Scanner.
+func NewScanner(file *os.File) (*Scanner, error) {
+	scanner := &Scanner{
+		File:   file,
+		Token:  Token{},
+		Tokens: []Token{},
+		reader: nil,
+		// pos:     0,
+		// readPos: 0,
+		// ch:     0,
+		// line:   1,
+		// column: 1,
 	}
-	dfa.Reset()
+	return scanner, nil
 }
 
-func (dfa *DFA) StoreLine() {
-	if len(dfa.tokens) > 0 {
-		dfa.totalTokens = append(dfa.totalTokens, dfa.tokens)
-		dfa.tokens = []Token{}
+// Scan the file for tokens.
+func (scanner *Scanner) ScanFile() ([]Token, error) {
+	scanner.reader = bufio.NewReader(scanner.File)
+	for {
+		b, err := scanner.reader.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+		if b == 'h' {
+			fmt.Print("h")
+		}
 	}
+	return scanner.Tokens, nil
 }
 
-// Reset the DFA to its initial state.
-func (dfa *DFA) Reset() {
-	dfa.currentState = Initial
-	dfa.currentToken = ""
-	dfa.currentString = 0
-}
+// func scanFile(file *os.File, dfa *DFA) error {
+// 	scanner := bufio.NewScanner(file)
+//
+// 	for scanner.Scan() {
+// 		for _, r := range scanner.Text() {
+// 			dfa.Transition(r)
+// 			// fmt.Print(i, r)
+// 			// fmt.Printf("Index: %d, Rune: %c\n", i, r)
+// 		}
+// 		dfa.Store()
+// 		dfa.StoreLine()
+// 	}
+// 	return nil
+// }
+
+
+// // Represents the scanning Deterministic Finite Automaton(DFA) for the scanner.
+// type DFA struct {
+// 	currentState  State
+// 	currentToken  string
+// 	currentString rune
+// 	tokens        []Token
+// 	totalTokens   [][]Token
+// }
+
+// // Constructor to initialize memory for the DFA.
+// func NewDFA() (*DFA, error) {
+// 	dfa := &DFA{}
+// 	dfa.currentState = Initial
+// 	dfa.currentToken = ""
+// 	dfa.currentString = 0
+// 	dfa.tokens = []Token{}
+// 	dfa.totalTokens = [][]Token{}
+// 	return dfa, nil
+// }
+
+// // Add a token to the list of tokens.
+// func (dfa *DFA) AddToken(Type string, Value string) {
+// 	dfa.tokens = append(dfa.tokens, Token{Type, Value})
+// }
 
 // Transition the DFA to a new state based on the input.
 func (dfa *DFA) Transition(input rune) {

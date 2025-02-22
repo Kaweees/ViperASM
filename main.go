@@ -22,27 +22,25 @@ func main() {
 }
 
 func viperASM(file *os.File) {
-	// Initialize the dfa
-	dfa, err := NewDFA()
+	// Initialize the Scanner
+	scanner, err := NewScanner(file)
 	if err != nil {
-		Log.Fatalf("Error initializing the DFA: %v", err)
+		Log.Fatalf("Error initializing the Scanner: %v", err)
 		return
+	} else {
+		Log.Info(fmt.Sprintf("Scanner of %s initialized", file.Name()))
 	}
 
-	// Scan the file
-	Log.Info(fmt.Sprintf("Scanner of %s initialized", file.Name()))
-	err = scanFile(file, dfa)
+	// Scan the file for tokens
+	tokenList, err := scanner.ScanFile()
 	if err != nil {
 		Log.Fatalf("Error scanning file: %v", err)
 		return
 	}
 
-	// Parsing the tokens
-	Log.Info(fmt.Sprintf("Parsing tokens of %s initalized", file.Name()))
-	err = parseTokens(dfa)
-	if err != nil {
-		Log.Fatalf("Error parsing tokens: %v", err)
-		return
+	// Print the tokens
+	for _, token := range tokenList {
+		fmt.Println(token)
 	}
 
 	// list := []int{10, 20, 30, 40, 50}
