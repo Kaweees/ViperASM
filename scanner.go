@@ -9,14 +9,22 @@ import (
 
 // Regex patterns for the token types
 var tokenRegex = map[TokenType]*regexp.Regexp{
+	// Instructions
 	INSTRUCTION: regexp.MustCompile(`^(add|sub|and|or|xor|sll|srl|sra|slt|sltu|addi|lw|sw|beq|bne|jal|jalr)`),
-	REGISTER:    regexp.MustCompile(`^(x[0-9]|x[1-2][0-9]|x3[0-1]|zero|ra|sp|gp|tp|t[0-6]|s[0-9]|s1[0-1]|a[0-7])`),
-	IMMEDIATE:   regexp.MustCompile(`^-?\d+`),
-	LABEL:       regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*:`),
-	COMMENT:     regexp.MustCompile(`^#.*`),
-	COMMA:       regexp.MustCompile(`^,`),
-	LPAREN:      regexp.MustCompile(`^\(`),
-	RPAREN:      regexp.MustCompile(`^\)`),
+	// Registers (including aliases)
+	REGISTER: regexp.MustCompile(`^(x[0-9]|x[1-2][0-9]|x3[0-1]|zero|ra|sp|gp|tp|t[0-6]|s[0-9]|s1[0-1]|a[0-7])`),
+	// Immediates (decimal, hex, binary)
+	IMMEDIATE: regexp.MustCompile(`^(-?[0-9]+|0x[0-9a-fA-F]+|0b[01]+)`),
+	// Labels
+	LABEL:     regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*`),
+	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*:`),
+	// Directives
+	DIRECTIVE: regexp.MustCompile(`^\.(text|data|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
+	// Other tokens
+	COMMA:   regexp.MustCompile(`^,`),
+	LPAREN:  regexp.MustCompile(`^\(`),
+	RPAREN:  regexp.MustCompile(`^\)`),
+	COMMENT: regexp.MustCompile(`^#.*`),
 }
 
 // Represents a Deterministic Finite Automaton(DFA) based lexical scanner.
