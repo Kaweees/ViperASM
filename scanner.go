@@ -8,8 +8,26 @@ import (
 	"strings"
 )
 
-// Regex patterns for the token types
+// Add this ordered processing list above the tokenRegex declaration
+var tokenPriority = []TokenType{
+	LABEL_DEF,
+	DIRECTIVE,
+	INSTRUCTION,
+	REGISTER,
+	IMMEDIATE,
+	COMMA,
+	LPAREN,
+	RPAREN,
+	COMMENT,
+	STRING,
+	CHAR,
+	LABEL, // Regular labels come after label definitions
+}
+
+// Updated token patterns with proper priority
 var tokenRegex = map[TokenType]*regexp.Regexp{
+	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_\.]*:`), // Modified to include dots
+	DIRECTIVE: regexp.MustCompile(`^\.(text|data|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
 	// Instructions
 	INSTRUCTION: regexp.MustCompile(`^(add|sub|and|or|xor|sll|srl|sra|slt|sltu|addi|lw|sw|beq|bne|jal|jalr)`),
 	// Registers (including aliases)
@@ -17,16 +35,14 @@ var tokenRegex = map[TokenType]*regexp.Regexp{
 	// Immediates (decimal, hex, binary)
 	IMMEDIATE: regexp.MustCompile(`^(-?[0-9]+|0x[0-9a-fA-F]+|0b[01]+)`),
 	// Labels
-	LABEL:     regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*`),
-	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*:`),
-	// Directives
-	DIRECTIVE: regexp.MustCompile(`^\.(text|data|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
+	LABEL: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*`),
 	// Other tokens
 	COMMA:   regexp.MustCompile(`^,`),
 	LPAREN:  regexp.MustCompile(`^\(`),
 	RPAREN:  regexp.MustCompile(`^\)`),
 	COMMENT: regexp.MustCompile(`^#.*`),
 	STRING:  regexp.MustCompile(`^"([^"\\]|\\.)*"`), // Matches quoted strings with escape support
+	CHAR:    regexp.MustCompile(`^'([^'\\]|\\.)'`),
 }
 
 // Represents a lexical scanner.
@@ -83,9 +99,29 @@ func (sc *Scanner) ScanLine(line string) []Token {
 			}
 		}
 
-		// Try to match each pattern
+		// Handle character literals
+		if line[0] == '\'' {
+			if match := sc.Patterns[CHAR].FindString(line); match != "" {
+				// Remove the quotes and handle escapes
+				literal := match[1 : len(match)-1] // Remove surrounding quotes
+				literal = strings.ReplaceAll(literal, `\'`, `'`)
+				literal = strings.ReplaceAll(literal, `\\`, `\`)
+				literal = strings.ReplaceAll(literal, `\n`, "\n")
+				literal = strings.ReplaceAll(literal, `\t`, "\t")
+
+				tokens = append(tokens, Token{
+					Type:    CHAR,
+					Literal: literal,
+				})
+				line = line[len(match):]
+				continue
+			}
+		}
+
+		// Try to match each pattern in priority order
 		matched := false
-		for tokType, pattern := range sc.Patterns {
+		for _, tokType := range tokenPriority {
+			pattern := sc.Patterns[tokType]
 			if match := pattern.FindString(line); match != "" {
 				if tokType != COMMENT && tokType != EOL {
 					tokens = append(tokens, Token{

@@ -25,6 +25,7 @@ const (
 	MACRO     // .macro
 	COMMENT   // # comments
 	STRING    // String literals
+	CHAR      // Character literals
 	EOL       // End of line
 )
 
@@ -36,7 +37,7 @@ type Token struct {
 
 // String method to convert the current token type to a string.
 func (t TokenType) String() string {
-	return [...]string{"Invalid", "Instruction", "Register", "Immediate", "Label", "LabelDef", "Comma", "LParen", "RParen", "Directive", "Macro", "Comment", "String", "EOL"}[t]
+	return [...]string{"Invalid", "Instruction", "Register", "Immediate", "Label", "LabelDef", "Comma", "LParen", "RParen", "Directive", "Macro", "Comment", "String", "Char", "EOL"}[t]
 }
 
 // String provides a readable representation of the token
