@@ -20,6 +20,8 @@ var tokenRegex = map[TokenType]*regexp.Regexp{
 	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*:`),
 	// Directives
 	DIRECTIVE: regexp.MustCompile(`^\.(text|data|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
+	// Macros
+	MACRO: regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*`),
 	// Other tokens
 	COMMA:   regexp.MustCompile(`^,`),
 	LPAREN:  regexp.MustCompile(`^\(`),
