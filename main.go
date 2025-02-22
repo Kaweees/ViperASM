@@ -39,8 +39,10 @@ func viperASM(file *os.File) {
 	}
 
 	// Print the tokens
-	for _, token := range tokenList {
-		fmt.Println(token)
+	for _, tokens := range tokenList {
+		for _, token := range tokens {
+			fmt.Println(token.Type, token.Literal, token.LineNum)
+		}
 	}
 
 	// // Parsing the tokens

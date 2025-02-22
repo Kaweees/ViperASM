@@ -2,152 +2,112 @@ package main
 
 import (
 	"bufio"
-	"fmt"
-	"io"
 	"os"
+	"regexp"
 	"strings"
-	"unicode"
+	// "unicode"
 )
+
+// Regex patterns for the token types
+var tokenRegex = map[TokenType]*regexp.Regexp{
+	INSTRUCTION: regexp.MustCompile(`^(add|sub|and|or|xor|sll|srl|sra|slt|sltu|addi|lw|sw|beq|bne|jal|jalr)`),
+	REGISTER:    regexp.MustCompile(`^(x[0-9]|x[1-2][0-9]|x3[0-1]|zero|ra|sp|gp|tp|t[0-6]|s[0-9]|s1[0-1]|a[0-7])`),
+	IMMEDIATE:   regexp.MustCompile(`^-?\d+`),
+	LABEL:       regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*:`),
+	COMMENT:     regexp.MustCompile(`^#.*`),
+	COMMA:       regexp.MustCompile(`^,`),
+	LPAREN:      regexp.MustCompile(`^\(`),
+	RPAREN:      regexp.MustCompile(`^\)`),
+}
 
 // Represents a Deterministic Finite Automaton(DFA) based lexical scanner.
 type Scanner struct {
-	File   *os.File
-	Token  Token
-	Tokens []Token
-	Reader *bufio.Reader
-	State  TokenType
+	File     *os.File
+	Patterns map[TokenType]*regexp.Regexp
+	Tokens   [][]Token
 }
 
 // Constructor to initialize memory for the Scanner.
 func NewScanner(file *os.File) (*Scanner, error) {
 	scanner := &Scanner{}
 	scanner.File = file
-	scanner.Token = Token{}
-	scanner.Tokens = []Token{}
-	scanner.Reader = nil
-	scanner.State = Initial
+	scanner.Patterns = tokenRegex
+	scanner.Tokens = [][]Token{}
 	return scanner, nil
 }
 
-// Add a token to the list of tokens.
-func (scanner *Scanner) AddToken() {
-	scanner.Tokens = append(scanner.Tokens, scanner.Token)
-}
-
-func (scanner *Scanner) ReadChar() (rune, error) {
-	b, err := scanner.Reader.ReadByte()
-	if err != nil {
-		return 0, err
+// Add a line of tokens to the list of tokens.
+func (scanner *Scanner) StoreLine(tokens []Token) {
+	if len(tokens) > 0 {
+		scanner.Tokens = append(scanner.Tokens, tokens)
 	}
-	return rune(b), nil
 }
 
 // Scan the file for tokens.
-func (scanner *Scanner) ScanFile() ([]Token, error) {
-	scanner.Reader = bufio.NewReader(scanner.File)
-	// Scan the file character by character to generate tokens
-	for {
-		b, err := scanner.Reader.ReadByte()
+func (scanner *Scanner) ScanFile() ([][]Token, error) {
+	buf := bufio.NewScanner(scanner.File)
+	lineNum := 0
+	for buf.Scan() {
+		line := buf.Text()
+		tokens, err := scanner.ScanLine(line, lineNum)
 		if err != nil {
-			if err == io.EOF {
-				return scanner.Tokens, nil
-			}
 			return nil, err
 		}
-		scanner.Transition(r)
-		ch := rune(b)
-		if ch == 'h' {
-			fmt.Print("h")
-		}
+		scanner.StoreLine(tokens)
+		lineNum++
 	}
+	return scanner.Tokens, nil
 }
 
-// Transition the scanner to a new state based on the input.
-func (scanner *Scanner) Transition(input byte) {
-	// fmt.Printf("State: %s, Rune: '%c'\n", dfa.State.String(), input)
-	switch scanner.State {
-	case Initial:
-		if input == 'x' {
-			scanner.State = DotIdentifier
-		} else if input == '$' {
-			scanner.Token = string(input)
-			scanner.State = Register
-		} else if input == '0' {
-			scanner.State = Zero
-		} else if unicode.IsDigit(input) || input == '-' {
-			scanner.Token = string(input)
-			scanner.State = Decimal
-		} else if input == ',' {
-			scanner.AddToken(scanner.State.String(), ",")
-			scanner.Reset()
-		} else if input == '(' {
-			scanner.AddToken(scanner.State.String(), "(")
-			scanner.Reset()
-		} else if input == ')' {
-			scanner.AddToken(scanner.State.String(), ")")
-			scanner.Reset()
-		} else if input == '#' || input == ';' {
-			scanner.Store()
-			scanner.State = Comment
-		} else if input == '"' || input == '\'' {
-			scanner.currentString = input
-			scanner.Token = string(input)
-			scanner.State = String
-		} else if !unicode.IsSpace(input) {
-			scanner.Token = string(input)
-			scanner.State = Identifier
+// ScanLine takes a line of assembly and returns all tokens found
+func (s *Scanner) ScanLine(line string, lineNum int) ([]Token, error) {
+	tokens := []Token{}
+	line = strings.TrimSpace(line)
+
+	for len(line) > 0 {
+		// Skip whitespace
+		line = strings.TrimLeft(line, " \t")
+		if len(line) == 0 {
+			break
 		}
-	case Identifier:
-		if input == ':' {
-			scanner.State = LabelDef
-			scanner.Store()
-		} else if !unicode.IsSpace(input) {
-			scanner.Token += string(input)
-		} else {
-			scanner.Store()
+
+		// Try to match each pattern
+		matched := false
+		for tokType, pattern := range s.Patterns {
+			if tokType == EOL {
+				break
+			}
+			if match := pattern.FindString(line); match != "" {
+				tokens = append(tokens, Token{
+					Type:    tokType,
+					Literal: match,
+					LineNum: lineNum,
+				})
+				line = line[len(match):]
+				matched = true
+				break
+			}
 		}
-	case DotIdentifier:
-		if unicode.IsLetter(input) {
-			scanner.Token += string(input)
-		} else {
-			scanner.Store()
-		}
-	case Register:
-		if input == ',' {
-			scanner.Store()
-			scanner.AddToken(scanner.State.String(), ",")
-		} else if unicode.IsDigit(input) || unicode.IsLetter(input) {
-			scanner.Token += string(input)
-		} else {
-			scanner.Store()
-		}
-	case Zero:
-		if input == 'x' {
-			scanner.State = Hexadecimal
-		} else if unicode.IsDigit(input) {
-			scanner.Token = string(input)
-			scanner.State = Decimal
-		} else {
-			scanner.Store()
-		}
-	case Decimal:
-		if unicode.IsDigit(input) {
-			scanner.Token += string(input)
-		} else {
-			scanner.Store()
-		}
-	case Hexadecimal:
-		if strings.ContainsAny(string(input), "0123456789abcdefABCDEF") {
-			scanner.Token += string(input)
-		} else {
-			scanner.Store()
-		}
-	case String:
-		scanner.Token += string(input)
-		if input == scanner.currentString {
-			scanner.Store()
+
+		if !matched {
+			// Handle invalid token
+			tokens = append(tokens, Token{
+				Type:    INVALID,
+				Literal: string(line[0]),
+				LineNum: lineNum,
+			})
+			line = line[1:]
 		}
 	}
+
+	// Add EOL token
+	tokens = append(tokens, Token{
+		Type:    EOL,
+		Literal: "",
+		LineNum: lineNum,
+	})
+
+	return tokens, nil
 }
 
 // // Store the current state of the DFA.
@@ -156,13 +116,6 @@ func (scanner *Scanner) Transition(input byte) {
 // 		dfa.AddToken(dfa.State.String(), dfa.Token)
 // 	}
 // 	dfa.Reset()
-// }
-
-// func (dfa *DFA) StoreLine() {
-// 	if len(dfa.tokens) > 0 {
-// 		dfa.totalTokens = append(dfa.totalTokens, dfa.tokens)
-// 		dfa.tokens = []Token{}
-// 	}
 // }
 
 // // Reset the DFA to its initial state.
