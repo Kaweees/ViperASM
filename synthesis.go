@@ -35,6 +35,43 @@ var instructionSet = map[string]Instruction{
 	"sra":  {R_TYPE, 0b0110011, 0x5, 0x20}, // rd = rs1 >> rs2 (arithmetic)
 	"slt":  {R_TYPE, 0b0110011, 0x2, 0x00}, // rd = (rs1 < rs2) ? 1 : 0
 	"sltu": {R_TYPE, 0b0110011, 0x3, 0x00}, // rd = (rs1 < rs2) ? 1 : 0
+
+	"addi":  {I_TYPE, 0b0010011, 0x0, 0x00}, // rd = rs1 + imm
+	"xori":  {I_TYPE, 0b0010011, 0x4, 0x00}, // rd = rs1 ^ imm
+	"ori":   {I_TYPE, 0b0010011, 0x6, 0x00}, // rd = rs1 | imm
+	"andi":  {I_TYPE, 0b0010011, 0x7, 0x00}, // rd = rs1 & imm
+	"slli":  {I_TYPE, 0b0010011, 0x1, 0x00}, // rd = rs1 << imm[0:4]
+	"srli":  {I_TYPE, 0b0010011, 0x5, 0x00}, // rd = rs1 >> imm[0:4] (logical)
+	"srai":  {I_TYPE, 0b0010011, 0x5, 0x20}, // rd = rs1 >> imm[0:4] (arithmetic)
+	"slti":  {I_TYPE, 0b0010011, 0x2, 0x00}, // rd = (rs1 < imm) ? 1 : 0
+	"sltiu": {I_TYPE, 0b0010011, 0x3, 0x00}, // rd = (rs1 < imm) ? 1 : 0
+
+	"lb":  {I_TYPE, 0b0000011, 0x0, 0x00}, // rd = M[rs1+imm][0:7]
+	"lh":  {I_TYPE, 0b0000011, 0x1, 0x00}, // rd = M[rs1+imm][0:15]
+	"lw":  {I_TYPE, 0b0000011, 0x2, 0x00}, // rd = M[rs1+imm][0:31]
+	"lbu": {I_TYPE, 0b0000011, 0x4, 0x00}, // rd = M[rs1+imm][0:7] zero-extends
+	"lhu": {I_TYPE, 0b0000011, 0x5, 0x00}, // rd = M[rs1+imm][0:15] zero-extends
+
+	"sb": {S_TYPE, 0b0100011, 0x0, 0x00}, // M[rs1+imm][0:7] = rs2[0:7]
+	"sh": {S_TYPE, 0b0100011, 0x1, 0x00}, // M[rs1+imm][0:15] = rs2[0:15]
+	"sw": {S_TYPE, 0b0100011, 0x2, 0x00}, // M[rs1+imm][0:31] = rs2[0:31]
+
+	"beq":  {B_TYPE, 0b1100011, 0x0, 0x00}, // if(rs1 == rs2) PC += imm
+	"bne":  {B_TYPE, 0b1100011, 0x1, 0x00}, // if(rs1 != rs2) PC += imm
+	"blt":  {B_TYPE, 0b1100011, 0x4, 0x00}, // if(rs1 < rs2) PC += imm
+	"bge":  {B_TYPE, 0b1100011, 0x5, 0x00}, // if(rs1 >= rs2) PC += imm
+	"bltu": {B_TYPE, 0b1100011, 0x6, 0x00}, // if(rs1 < rs2) PC += imm zero-extends
+	"bgeu": {B_TYPE, 0b1100011, 0x7, 0x00}, // if(rs1 >= rs2) PC += imm zero-extends
+
+	"jal":  {J_TYPE, 0b1101111, 0x0, 0x00}, // rd = PC+4; PC += imm
+	"jalr": {I_TYPE, 0b1100111, 0x0, 0x00}, // rd = PC+4; PC = rs1 + imm
+
+	"lui":   {U_TYPE, 0b0110111, 0x0, 0x00}, // rd = imm << 12
+	"auipc": {U_TYPE, 0b0010111, 0x0, 0x00}, // rd = PC + (imm << 12)
+
+	"ecall": {I_TYPE, 0b1110011, 0x0, 0x00}, // imm=0x0 Transfer control to OS
+
+	"ebreak": {I_TYPE, 0b1110011, 0x0, 0x01}, // imm=0x1 Transfer control to debugger
 }
 
 // ABI registers map
