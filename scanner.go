@@ -11,6 +11,7 @@ import (
 // Add this ordered processing list above the tokenRegex declaration
 var tokenPriority = []TokenType{
 	INSTRUCTION,
+	PSEUDO_INSTRUCTION,
 	LABEL_DEF,
 	DIRECTIVE,
 	REGISTER,
@@ -24,19 +25,34 @@ var tokenPriority = []TokenType{
 	LABEL, // Regular labels come after label definitions
 }
 
+// Generate a regex for all instructions
+func instructionRegex() string {
+	instructions := []string{}
+	for name, _ := range instructionSet {
+		instructions = append(instructions, name)
+	}
+	return strings.Join(instructions, "|")
+}
+
+// Generate a regex for all pseudo instructions
+func pseudoInstructionRegex() string {
+	pseudoInstructions := []string{}
+	for name, _ := range pseudoInstructionSet {
+		pseudoInstructions = append(pseudoInstructions, name)
+	}
+	return strings.Join(pseudoInstructions, "|")
+}
+
 // Updated token patterns with proper priority
 var tokenRegex = map[TokenType]*regexp.Regexp{
 	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_\.]*:`), // Modified to include dots
 	DIRECTIVE: regexp.MustCompile(`^\.(text|data|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
 	// Instructions
 	INSTRUCTION: regexp.MustCompile(
-		fmt.Sprintf("^(%s)", func() string {
-			instructions := []string{}
-			for name, _ := range instructionSet {
-				instructions = append(instructions, name)
-			}
-			return strings.Join(instructions, "|")
-		}()),
+		fmt.Sprintf("^(%s)", instructionRegex()),
+	),
+	PSEUDO_INSTRUCTION: regexp.MustCompile(
+		fmt.Sprintf("^(%s)", pseudoInstructionRegex()),
 	),
 	// Registers (including aliases)
 	REGISTER: regexp.MustCompile(`^(x[0-9]|x[1-2][0-9]|x3[0-1]|zero|ra|sp|gp|tp|t[0-6]|s[0-9]|s1[0-1]|a[0-7])`),

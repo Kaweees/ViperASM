@@ -11,6 +11,8 @@ const (
 
 	// Instructions
 	INSTRUCTION
+	// Pseudo instruction
+	PSEUDO_INSTRUCTION
 	// Operands and symbols
 	REGISTER  // x0-x31 or aliases
 	IMMEDIATE // Numeric values
@@ -37,7 +39,7 @@ type Token struct {
 
 // String method to convert the current token type to a string.
 func (t TokenType) String() string {
-	return [...]string{"Invalid", "Instruction", "Register", "Immediate", "Label", "LabelDef", "Comma", "LParen", "RParen", "Directive", "Macro", "Comment", "String", "Char", "EOL"}[t]
+	return [...]string{"Invalid", "Instruction", "PseudoInstruction", "Register", "Immediate", "Label", "LabelDef", "Comma", "LParen", "RParen", "Directive", "Macro", "Comment", "String", "Char", "EOL"}[t]
 }
 
 // String provides a readable representation of the token

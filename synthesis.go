@@ -74,6 +74,23 @@ var instructionSet = map[string]Instruction{
 	"ebreak": {I_TYPE, 0b1110011, 0x0, 0x01}, // imm=0x1 Transfer control to debugger
 }
 
+// Pseudo instructions expansions
+var pseudoInstructionSet = map[string][]AssemblyInstruction{
+	"nop":  {{name: "addi", iType: &ITypeInstruction{rd: "x0", rs1: "x0", imm: 0}}},
+	"mv":   {{name: "addi", iType: &ITypeInstruction{rd: "", rs1: "", imm: 0}}}, // Will be populated during parsing
+	"not":  {{name: "xori", iType: &ITypeInstruction{rd: "", rs1: "", imm: -1}}},
+	"j":    {{name: "jal", jType: &JTypeInstruction{rd: "x0", imm: 0}}}, // imm filled during parsing
+	"ret":  {{name: "jalr", iType: &ITypeInstruction{rd: "x0", rs1: "x1", imm: 0}}},
+	"li":   {{name: "lui", uType: &UTypeInstruction{rd: "", imm: 0}}, {name: "addi", iType: &ITypeInstruction{rd: "", rs1: "", imm: 0}}},
+	"call": {{name: "auipc", uType: &UTypeInstruction{rd: "x1", imm: 0}}, {name: "jalr", iType: &ITypeInstruction{rd: "x1", rs1: "x1", imm: 0}}},
+}
+
+func splitImmediate(imm int32) (int32, int32) {
+	high20 := (imm + 0x800) >> 12
+	low12 := imm - (high20 << 12)
+	return high20, low12
+}
+
 // ABI registers map
 var registerMap = map[string]int{
 	"zero": 0, // Hardwired zero
