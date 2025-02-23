@@ -38,11 +38,31 @@ func viperASM(file *os.File) {
 		return
 	}
 
-	// Process each line of tokens
-	for lineNum, lineTokens := range tokens {
-		fmt.Printf("Line %d:\n", lineNum+1)
-		for _, token := range lineTokens {
-			fmt.Printf("  %s\n", token)
-		}
+	// // Process each line of tokens
+	// for lineNum, lineTokens := range tokens {
+	// 	fmt.Printf("Line %d:\n", lineNum+1)
+	// 	for _, token := range lineTokens {
+	// 		fmt.Printf("  %s\n", token)
+	// 	}
+	// }
+
+	// Initialize the Parser
+	parser, err := NewParser()
+	if err != nil {
+		Log.Fatalf("Error initializing the Parser: %v", err)
+		return
+	}
+
+	// Parse the tokens to generate the instructions
+	Log.Info(fmt.Sprintf("Parsing tokens of %s initalized", file.Name()))
+	instructions, err := parser.ParseTokens(tokens)
+	if err != nil {
+		Log.Fatalf("Error parsing tokens: %v", err)
+		return
+	}
+
+	// Print the instructions
+	for _, instruction := range instructions {
+		fmt.Printf("% s\n", instruction)
 	}
 }

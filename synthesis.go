@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Represents the instruction types in RISC-V
 type InstructionType int
@@ -88,7 +90,7 @@ var pseudoInstructionSet = map[string][]AssemblyInstruction{
 func splitImmediate(imm int32) (int32, int32) {
 	high20 := (imm + 0x800) >> 12
 	low12 := imm - (high20 << 12)
-	return high20, low12
+	return high20, low12 // high20 is the upper 20 bits, low12 is the lower 12 bits
 }
 
 // ABI registers map
@@ -244,35 +246,35 @@ func synthesizeJType(asm JTypeInstruction, instruction Instruction) (uint32, err
 	return encodedInstruction, nil
 }
 
-func synthesize(asm AssemblyInstruction) (uint32, error) {
-	instruction, ok := instructionSet[asm.name]
-	if !ok {
-		return 0, fmt.Errorf("invalid instruction name: %s", asm.name)
-	}
+// func synthesize(asm AssemblyInstruction) (uint32, error) {
+// 	instruction, ok := instructionSet[asm.name]
+// 	if !ok {
+// 		return nil, fmt.Errorf("invalid instruction name: %s", asm.name)
+// 	}
 
-	switch instruction.format {
-	case R_TYPE:
-		encodedInstruction, err := synthesizeRType(*asm.rType, instruction)
-		if err != nil {
-			return 0, fmt.Errorf("error synthesizing R-type instruction: %s", err)
-		} else {
-			return encodedInstruction, nil
-		}
-	case I_TYPE:
-		encodedInstruction, err := synthesizeIType(*asm.iType, instruction)
-		if err != nil {
-			return 0, fmt.Errorf("error synthesizing I-type instruction: %s", err)
-		} else {
-			return encodedInstruction, nil
-		}
-	case J_TYPE:
-		encodedInstruction, err := synthesizeJType(*asm.jType, instruction)
-		if err != nil {
-			return 0, fmt.Errorf("error synthesizing J-type instruction: %s", err)
-		} else {
-			return encodedInstruction, nil
-		}
-	default:
-		return 0, fmt.Errorf("unknown instruction type: %d", instruction.format)
-	}
-}
+// 	switch instruction.format {
+// 	case R_TYPE:
+// 		encodedInstruction, err := synthesizeRType(*asm.rType, instruction)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("error synthesizing R-type instruction: %s", err)
+// 		} else {
+// 			return []uint32{encodedInstruction}, nil
+// 		}
+// 	case I_TYPE:
+// 		encodedInstruction, err := synthesizeIType(*asm.iType, instruction)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("error synthesizing I-type instruction: %s", err)
+// 		} else {
+// 			return []uint32{encodedInstruction}, nil
+// 		}
+// 	case J_TYPE:
+// 		encodedInstruction, err := synthesizeJType(*asm.jType, instruction)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("error synthesizing J-type instruction: %s", err)
+// 		} else {
+// 			return []uint32{encodedInstruction}, nil
+// 		}
+// 	default:
+// 		return nil, fmt.Errorf("unknown instruction type: %d", instruction.format)
+// 	}
+// }

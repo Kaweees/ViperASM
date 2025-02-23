@@ -7,7 +7,7 @@
   .globl main	# declare global symbols
 
   .data # start of the data section
-    hello_str: .asciiz "Hello, World!\n"
+    hello_str: .asciz "Hello, World!\n"
     newline: .byte '\n'    # Newline character
     tab:     .byte '\t'    # Tab character
     char:    .byte 'A'     # Regular character

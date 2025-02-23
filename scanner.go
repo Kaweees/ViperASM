@@ -46,7 +46,7 @@ func pseudoInstructionRegex() string {
 // Updated token patterns with proper priority
 var tokenRegex = map[TokenType]*regexp.Regexp{
 	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_\.]*:`), // Modified to include dots
-	DIRECTIVE: regexp.MustCompile(`^\.(text|data|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
+	DIRECTIVE: regexp.MustCompile(`^\.(text|data|globl|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
 	// Instructions
 	INSTRUCTION: regexp.MustCompile(
 		fmt.Sprintf("^(%s)", instructionRegex()),
@@ -82,8 +82,6 @@ func NewScanner(file *os.File) (*Scanner, error) {
 	sc.File = file
 	sc.Patterns = tokenRegex
 	sc.Tokens = [][]Token{}
-
-	fmt.Println(sc.Patterns[INSTRUCTION])
 	return sc, nil
 }
 
