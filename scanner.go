@@ -12,8 +12,8 @@ import (
 var tokenPriority = []TokenType{
 	INSTRUCTION,
 	PSEUDO_INSTRUCTION,
-	LABEL_DEF,
 	DIRECTIVE,
+	LABEL_DEF,
 	REGISTER,
 	IMMEDIATE,
 	COMMA,
@@ -45,8 +45,8 @@ func pseudoInstructionRegex() string {
 
 // Updated token patterns with proper priority
 var tokenRegex = map[TokenType]*regexp.Regexp{
-	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_\.]*:`), // Modified to include dots
 	DIRECTIVE: regexp.MustCompile(`^\.(text|data|globl|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
+	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_\.]*:`),
 	// Instructions
 	INSTRUCTION: regexp.MustCompile(
 		fmt.Sprintf("^(%s)", instructionRegex()),
@@ -65,7 +65,7 @@ var tokenRegex = map[TokenType]*regexp.Regexp{
 	LPAREN:  regexp.MustCompile(`^\(`),
 	RPAREN:  regexp.MustCompile(`^\)`),
 	COMMENT: regexp.MustCompile(`^#.*`),
-	STRING:  regexp.MustCompile(`^"([^"\\]|\\.)*"`), // Matches quoted strings with escape support
+	STRING:  regexp.MustCompile(`^"([^"\\]|\\.)*"`),
 	CHAR:    regexp.MustCompile(`^'([^'\\]|\\.)'`),
 }
 
