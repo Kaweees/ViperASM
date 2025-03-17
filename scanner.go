@@ -2,188 +2,201 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"regexp"
 	"strings"
-	"unicode"
 )
 
-// Represents the possible states of the DFA.
-type State int
-
-// Represents the possible states of the DFA.
-const (
-	Initial State = iota
-	Identifier
-	DotIdentifier
-	Register
-	Zero
-	Decimal
-	Hexadecimal
-	Comma
-	LParen
-	RParen
-	LabelDef
-	Comment
-	String
-)
-
-// String method to convert the current state to a string.
-func (s State) String() string {
-	return [...]string{"Initial", "Identifier", "DotIdentifier", "Register", "Zero", "Decimal", "Hexadecimal", "Comma", "LParen", "RParen", "LabelDef", "Comment", "String"}[s]
+// Add this ordered processing list above the tokenRegex declaration
+var tokenPriority = []TokenType{
+	INSTRUCTION,
+	PSEUDO_INSTRUCTION,
+	DIRECTIVE,
+	LABEL_DEF,
+	REGISTER,
+	IMMEDIATE,
+	COMMA,
+	LPAREN,
+	RPAREN,
+	COMMENT,
+	STRING,
+	CHAR,
+	LABEL, // Regular labels come after label definitions
 }
 
-// Represents a token in the scanner.
-type Token struct {
-	tokenType  string
-	tokenValue string
-}
-
-// Represents the scanning Deterministic Finite Automaton(DFA) for the scanner.
-type DFA struct {
-	currentState  State
-	currentToken  string
-	currentString rune
-	tokens        []Token
-	totalTokens   [][]Token
-}
-
-// Constructor to initialize memory for the DFA.
-func NewDFA() (*DFA, error) {
-	dfa := &DFA{}
-	dfa.currentState = Initial
-	dfa.currentToken = ""
-	dfa.currentString = 0
-	dfa.tokens = []Token{}
-	dfa.totalTokens = [][]Token{}
-	return dfa, nil
-}
-
-// Add a token to the list of tokens.
-func (dfa *DFA) AddToken(tokenType string, tokenValue string) {
-	dfa.tokens = append(dfa.tokens, Token{tokenType, tokenValue})
-}
-
-// Store the current state of the DFA.
-func (dfa *DFA) Store() {
-	if dfa.currentState != Initial && dfa.currentState != Comment {
-		dfa.AddToken(dfa.currentState.String(), dfa.currentToken)
+// Generate a regex for all instructions
+func instructionRegex() string {
+	instructions := []string{}
+	for name, _ := range instructionSet {
+		instructions = append(instructions, name)
 	}
-	dfa.Reset()
+	return strings.Join(instructions, "|")
 }
 
-func (dfa *DFA) StoreLine() {
-	if len(dfa.tokens) > 0 {
-		dfa.totalTokens = append(dfa.totalTokens, dfa.tokens)
-		dfa.tokens = []Token{}
+// Generate a regex for all pseudo instructions
+func pseudoInstructionRegex() string {
+	pseudoInstructions := []string{}
+	for name, _ := range pseudoInstructionSet {
+		pseudoInstructions = append(pseudoInstructions, name)
 	}
+	return strings.Join(pseudoInstructions, "|")
 }
 
-// Reset the DFA to its initial state.
-func (dfa *DFA) Reset() {
-	dfa.currentState = Initial
-	dfa.currentToken = ""
-	dfa.currentString = 0
+// Updated token patterns with proper priority
+var tokenRegex = map[TokenType]*regexp.Regexp{
+	DIRECTIVE: regexp.MustCompile(`^\.(text|data|globl|global|extern|byte|half|word|dword|string|align|section|macro|endm|ifdef|ifndef|endif|include|equ|set)`),
+	LABEL_DEF: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_\.]*:`),
+	// Instructions
+	INSTRUCTION: regexp.MustCompile(
+		fmt.Sprintf("^(%s)", instructionRegex()),
+	),
+	PSEUDO_INSTRUCTION: regexp.MustCompile(
+		fmt.Sprintf("^(%s)", pseudoInstructionRegex()),
+	),
+	// Registers (including aliases)
+	REGISTER: regexp.MustCompile(`^(x[0-9]|x[1-2][0-9]|x3[0-1]|zero|ra|sp|gp|tp|t[0-6]|s[0-9]|s1[0-1]|a[0-7])`),
+	// Immediates (decimal, hex, binary)
+	IMMEDIATE: regexp.MustCompile(`^(-?[0-9]+|0x[0-9a-fA-F]+|0b[01]+)`),
+	// Labels
+	LABEL: regexp.MustCompile(`^[a-zA-Z_.][a-zA-Z0-9_]*`),
+	// Other tokens
+	COMMA:   regexp.MustCompile(`^,`),
+	LPAREN:  regexp.MustCompile(`^\(`),
+	RPAREN:  regexp.MustCompile(`^\)`),
+	COMMENT: regexp.MustCompile(`^#.*`),
+	STRING:  regexp.MustCompile(`^"([^"\\]|\\.)*"`),
+	CHAR:    regexp.MustCompile(`^'([^'\\]|\\.)'`),
 }
 
-// Transition the DFA to a new state based on the input.
-func (dfa *DFA) Transition(input rune) {
-	// fmt.Printf("State: %s, Rune: '%c'\n", dfa.currentState.String(), input)
-	switch dfa.currentState {
-	case Initial:
-		if input == '.' {
-			dfa.currentState = DotIdentifier
-		} else if input == '$' {
-			dfa.currentToken = string(input)
-			dfa.currentState = Register
-		} else if input == '0' {
-			dfa.currentState = Zero
-		} else if unicode.IsDigit(input) || input == '-' {
-			dfa.currentToken = string(input)
-			dfa.currentState = Decimal
-		} else if input == ',' {
-			dfa.AddToken(dfa.currentState.String(), ",")
-			dfa.Reset()
-		} else if input == '(' {
-			dfa.AddToken(dfa.currentState.String(), "(")
-			dfa.Reset()
-		} else if input == ')' {
-			dfa.AddToken(dfa.currentState.String(), ")")
-			dfa.Reset()
-		} else if input == '#' || input == ';' {
-			dfa.Store()
-			dfa.currentState = Comment
-		} else if input == '"' || input == '\'' {
-			dfa.currentString = input
-			dfa.currentToken = string(input)
-			dfa.currentState = String
-		} else if !unicode.IsSpace(input) {
-			dfa.currentToken = string(input)
-			dfa.currentState = Identifier
-		}
-	case Identifier:
-		if input == ':' {
-			dfa.currentState = LabelDef
-			dfa.Store()
-		} else if !unicode.IsSpace(input) {
-			dfa.currentToken += string(input)
-		} else {
-			dfa.Store()
-		}
-	case DotIdentifier:
-		if unicode.IsLetter(input) {
-			dfa.currentToken += string(input)
-		} else {
-			dfa.Store()
-		}
-	case Register:
-		if input == ',' {
-			dfa.Store()
-			dfa.AddToken(dfa.currentState.String(), ",")
-		} else if unicode.IsDigit(input) || unicode.IsLetter(input) {
-			dfa.currentToken += string(input)
-		} else {
-			dfa.Store()
-		}
-	case Zero:
-		if input == 'x' {
-			dfa.currentState = Hexadecimal
-		} else if unicode.IsDigit(input) {
-			dfa.currentToken = string(input)
-			dfa.currentState = Decimal
-		} else {
-			dfa.Store()
-		}
-	case Decimal:
-		if unicode.IsDigit(input) {
-			dfa.currentToken += string(input)
-		} else {
-			dfa.Store()
-		}
-	case Hexadecimal:
-		if strings.ContainsAny(string(input), "0123456789abcdefABCDEF") {
-			dfa.currentToken += string(input)
-		} else {
-			dfa.Store()
-		}
-	case String:
-		dfa.currentToken += string(input)
-		if input == dfa.currentString {
-			dfa.Store()
-		}
+// Represents a lexical scanner.
+type Scanner struct {
+	File     *os.File
+	Patterns map[TokenType]*regexp.Regexp
+	Tokens   [][]Token
+}
+
+// Constructor to initialize memory for the Scanner.
+func NewScanner(file *os.File) (*Scanner, error) {
+	sc := &Scanner{}
+	sc.File = file
+	sc.Patterns = tokenRegex
+	sc.Tokens = [][]Token{}
+	return sc, nil
+}
+
+// Add a line of tokens to the list of tokens.
+func (sc *Scanner) StoreLine(tokens []Token) {
+	if len(tokens) > 0 {
+		sc.Tokens = append(sc.Tokens, tokens)
 	}
 }
 
-func scanFile(file *os.File, dfa *DFA) error {
+// Scan a line of assembly and return all tokens found.
+func (sc *Scanner) ScanLine(line string) []Token {
+	tokens := []Token{}
+	line = strings.TrimSpace(line)
+
+	for len(line) > 0 {
+		// Skip whitespace
+		line = strings.TrimLeft(line, " \t")
+		if len(line) == 0 {
+			break
+		}
+
+		// Special handling for string literals
+		if line[0] == '"' {
+			if match := sc.Patterns[STRING].FindString(line); match != "" {
+				// Remove the quotes and handle escapes
+				literal := match[1 : len(match)-1] // Remove surrounding quotes
+				literal = strings.ReplaceAll(literal, `\"`, `"`)
+				literal = strings.ReplaceAll(literal, `\\`, `\`)
+				literal = strings.ReplaceAll(literal, `\n`, "\n")
+				literal = strings.ReplaceAll(literal, `\t`, "\t")
+
+				tokens = append(tokens, Token{
+					Type:    STRING,
+					Literal: literal,
+				})
+				line = line[len(match):]
+				continue
+			}
+		}
+
+		// Handle character literals
+		if line[0] == '\'' {
+			if match := sc.Patterns[CHAR].FindString(line); match != "" {
+				// Remove the quotes and handle escapes
+				literal := match[1 : len(match)-1] // Remove surrounding quotes
+				literal = strings.ReplaceAll(literal, `\'`, `'`)
+				literal = strings.ReplaceAll(literal, `\\`, `\`)
+				literal = strings.ReplaceAll(literal, `\n`, "\n")
+				literal = strings.ReplaceAll(literal, `\t`, "\t")
+
+				tokens = append(tokens, Token{
+					Type:    CHAR,
+					Literal: literal,
+				})
+				line = line[len(match):]
+				continue
+			}
+		}
+
+		// Try to match each pattern in priority order
+		matched := false
+		for _, tokType := range tokenPriority {
+			pattern := sc.Patterns[tokType]
+			if match := pattern.FindString(line); match != "" {
+				if tokType != COMMENT && tokType != EOL {
+					tokens = append(tokens, Token{
+						Type:    tokType,
+						Literal: match,
+					})
+				}
+				line = line[len(match):]
+				matched = true
+				break
+			}
+		}
+
+		if !matched {
+			// Handle invalid token
+			tokens = append(tokens, Token{
+				Type:    INVALID,
+				Literal: string(line[0]),
+			})
+			line = line[1:]
+		}
+	}
+
+	return tokens
+}
+
+// ScanFile reads the input file line by line and returns all tokens
+func (sc *Scanner) ScanFile(file *os.File) ([][]Token, error) {
 	scanner := bufio.NewScanner(file)
-	// Scan the file to generate tokens
+
 	for scanner.Scan() {
-		for _, r := range scanner.Text() {
-			dfa.Transition(r)
-			// fmt.Print(i, r)
-			// fmt.Printf("Index: %d, Rune: %c\n", i, r)
+		line := scanner.Text()
+
+		// Skip empty lines
+		if len(strings.TrimSpace(line)) == 0 {
+			continue
 		}
-		dfa.Store()
-		dfa.StoreLine()
+
+		// Scan the line and store tokens
+		tokens := sc.ScanLine(line)
+
+		// Only store non-empty token lists
+		if len(tokens) > 0 {
+			// Add line number to each token
+			sc.StoreLine(tokens)
+		}
 	}
-	return nil
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading file: %v", err)
+	}
+
+	return sc.Tokens, nil
 }

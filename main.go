@@ -22,39 +22,47 @@ func main() {
 }
 
 func viperASM(file *os.File) {
-	// Initialize the dfa
-	dfa, err := NewDFA()
+	// Initialize the Scanner
+	scanner, err := NewScanner(file)
 	if err != nil {
-		Log.Fatalf("Error initializing the DFA: %v", err)
+		Log.Fatalf("Error initializing the Scanner: %v", err)
 		return
+	} else {
+		Log.Info(fmt.Sprintf("Scanner of %s initialized", file.Name()))
 	}
 
-	// Scan the file
-	Log.Info(fmt.Sprintf("Scanner of %s initialized", file.Name()))
-	err = scanFile(file, dfa)
+	// Scan the file for tokens
+	tokens, err := scanner.ScanFile(file)
 	if err != nil {
 		Log.Fatalf("Error scanning file: %v", err)
 		return
 	}
 
-	// Parsing the tokens
+	// // Process each line of tokens
+	// for lineNum, lineTokens := range tokens {
+	// 	fmt.Printf("Line %d:\n", lineNum+1)
+	// 	for _, token := range lineTokens {
+	// 		fmt.Printf("  %s\n", token)
+	// 	}
+	// }
+
+	// Initialize the Parser
+	parser, err := NewParser()
+	if err != nil {
+		Log.Fatalf("Error initializing the Parser: %v", err)
+		return
+	}
+
+	// Parse the tokens to generate the instructions
 	Log.Info(fmt.Sprintf("Parsing tokens of %s initalized", file.Name()))
-	err = parseTokens(dfa)
+	instructions, err := parser.ParseTokens(tokens)
 	if err != nil {
 		Log.Fatalf("Error parsing tokens: %v", err)
 		return
 	}
 
-	// list := []int{10, 20, 30, 40, 50}
-	// for i := 0; i < len(list); i++ {
-	// 	fmt.Println(list[i])
-	// }
-
-	// if err := scanner.Err(); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// Synthesize the tokens
-	// err = synthesizeTokens(dfa)
-	// fmt.Printf("%d lines, %d bytes\n", lineCount, byteCount)
+	// Print the instructions
+	for _, instruction := range instructions {
+		fmt.Printf("% s\n", instruction)
+	}
 }
